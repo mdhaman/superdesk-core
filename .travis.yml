@@ -2,6 +2,10 @@ language: python
 
 sudo: false
 
+env:
+    - TARGET=unit
+    - TARGET=sever_ldap
+
 python:
     - "3.4"
 
@@ -20,7 +24,12 @@ install:
     - pip install coveralls==1.0a2;
 
 script:
-    - flake8
-    - nosetests --with-coverage --cover-package=superdesk
-    - behave --format progress2 --logging-level ERROR
+    - if [ "${TARGET}" = "unit" ]; then
+        flake8 ;
+        nosetests --with-coverage --cover-package=superdesk ;
+        behave --format progress2 --logging-level ERROR ;
+      fi
 
+    - if [ "${TARGET}" = "server_ldap" ]; then
+        LDAP_SERVER="ldap://sourcefabric.org" LDAP_BASE_FILTER="OU=Superdesk Users,dc=sourcefabric,dc=org" behave ./features/ --format progress2 --logging-level ERROR ;
+      fi
