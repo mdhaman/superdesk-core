@@ -326,6 +326,10 @@ RENDITIONS = {
 
 SERVER_DOMAIN = 'localhost'
 
+# if the flag is set to true use publish subscriber mechanism to websockets messages (required for HA).
+USE_PUB_SUB_FOR_WEBSOCKETS = json.loads(env('USE_PUB_SUB_FOR_WEBSOCKETS', 'False').lower())
+
+
 BCRYPT_GENSALT_WORK_FACTOR = 12
 RESET_PASSWORD_TOKEN_TIME_TO_LIVE = int(env('RESET_PASS_TTL', 1))  # The number of days a token is valid
 # The number of days an activation token is valid

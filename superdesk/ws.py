@@ -17,9 +17,12 @@ import logging
 import websockets
 import logging.handlers
 
+from threading import Thread
+from superdesk.factory.default_settings import BROKER_URL, USE_PUB_SUB_FOR_WEBSOCKETS
+from superdesk.websockets_broker import SocketMessageConsumer
+
 beat_delay = 5
 clients = set()
-
 logger = logging.getLogger(__name__)
 
 
@@ -105,7 +108,6 @@ def connection_handler(websocket, path):
 
 def create_server(config):
     """Create websocket server and run it until it gets Ctrl+C or SIGTERM.
-
     :param config: config dictionary
     """
     try:
@@ -115,6 +117,13 @@ def create_server(config):
         server = loop.run_until_complete(websockets.serve(connection_handler, host, port))
         loop.add_signal_handler(signal.SIGTERM, loop.stop)
         logger.info('listening on %s:%s' % (host, port))
+        consumer = None
+        if USE_PUB_SUB_FOR_WEBSOCKETS:
+            # create socket message consumer
+            consumer = SocketMessageConsumer(BROKER_URL, broadcast)
+            consumer_thread = Thread(target=consumer.run)
+            consumer_thread.start()
+
         loop.run_forever()
     except KeyboardInterrupt:
         pass
@@ -125,6 +134,8 @@ def create_server(config):
         loop.stop()
         loop.run_forever()
         loop.close()
+        if consumer:
+            consumer.close()
 
 
 if __name__ == '__main__':
