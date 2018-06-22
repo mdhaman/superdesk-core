@@ -104,6 +104,11 @@ class FilterConditionParametersService(BaseService):
                    'operators': ['eq', 'ne'],
                    'values': values['embargo'],
                    'value_field': 'name'
+                   },
+                  {'field': 'update',
+                   'operators': ['eq'],
+                   'values': values['update'],
+                   'value_field': 'name'
                    }]
         fields.extend(self._get_vocabulary_fields(values))
         return ListCursor(fields)
@@ -143,6 +148,7 @@ class FilterConditionParametersService(BaseService):
         values['stage'] = self._get_stage_field_values(values['desk'])
         values['sms'] = [{'qcode': 0, 'name': 'False'}, {'qcode': 1, 'name': 'True'}]
         values['embargo'] = [{'qcode': 0, 'name': 'False'}, {'qcode': 1, 'name': 'True'}]
+        values['update'] = [{'qcode': 0, 'name': 'False'}, {'qcode': 1, 'name': 'True'}]
         req = ParsedRequest()
         req.where = json.dumps({'$or': [{"schema_field": "place"}, {"_id": "place"}, {"_id": "locators"}]})
         place = vocabularies_resource.get(req=req, lookup=None)

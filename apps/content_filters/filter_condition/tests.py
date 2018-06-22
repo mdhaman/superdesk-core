@@ -46,7 +46,9 @@ class FilterConditionTests(TestCase):
                                  [{'qcode': 'a', 'name': 'Aus News'}]},
                              {'_id': '10', 'body_html': '<p>Mention<p>', 'embargo': utcnow(),
                              'schedule_settings': {'utc_embargo': utcnow() - timedelta(minutes=20)}},
-                             {'_id': '11', 'place': [{'qcode': 'NSW', 'name': 'NSW'}], 'state': 'fetched'}]
+                             {'_id': '11', 'place': [{'qcode': 'NSW', 'name': 'NSW'}], 'state': 'fetched'},
+                             {'_id': '12', 'headline': 'rewrite', 'rewrite_of': '11', 'state': 'fetched'},
+                             {'_id': '13', 'headline': 'unlink rewrite', 'rewrite_of': None, 'state': 'fetched'}]
 
             self.app.data.insert('archive', self.articles)
 
@@ -129,7 +131,7 @@ class FilterConditionTests(TestCase):
         with self.app.app_context():
             docs = get_resource_service('archive'). \
                 get_from_mongo(req=self.req, lookup=query)
-            self.assertEqual(10, docs.count())
+            self.assertEqual(12, docs.count())
             self.assertTrue('5' not in [d['_id'] for d in docs])
 
     def test_mongo_using_priority_compare_lte_filter(self):
@@ -156,7 +158,7 @@ class FilterConditionTests(TestCase):
         with self.app.app_context():
             docs = get_resource_service('archive'). \
                 get_from_mongo(req=self.req, lookup=query)
-            self.assertEqual(10, docs.count())
+            self.assertEqual(12, docs.count())
 
     def test_mongo_using_desk_filter_eq(self):
         f = FilterCondition('desk', 'eq', '1')
@@ -279,7 +281,7 @@ class FilterConditionTests(TestCase):
         with self.app.app_context():
             docs = get_resource_service('archive'). \
                 get_from_mongo(req=self.req, lookup=query)
-            self.assertEqual(10, docs.count())
+            self.assertEqual(12, docs.count())
             doc_ids = [d['_id'] for d in docs]
             self.assertTrue('2' not in doc_ids)
 
@@ -299,7 +301,7 @@ class FilterConditionTests(TestCase):
         with self.app.app_context():
             docs = get_resource_service('archive'). \
                 get_from_mongo(req=self.req, lookup=query)
-            self.assertEqual(8, docs.count())
+            self.assertEqual(10, docs.count())
             doc_ids = [d['_id'] for d in docs]
             self.assertTrue('1' in doc_ids)
             self.assertTrue('2' in doc_ids)
@@ -381,7 +383,7 @@ class FilterConditionTests(TestCase):
         with self.app.app_context():
             self._setup_elastic_args(query, 'not')
             docs = get_resource_service('archive').get(req=self.req, lookup=None)
-            self.assertEqual(8, docs.count())
+            self.assertEqual(10, docs.count())
             doc_ids = [d['_id'] for d in docs]
             self.assertTrue('6' in doc_ids)
             self.assertTrue('5' in doc_ids)
@@ -392,7 +394,7 @@ class FilterConditionTests(TestCase):
         with self.app.app_context():
             self._setup_elastic_args(query, 'not')
             docs = get_resource_service('archive').get(req=self.req, lookup=None)
-            self.assertEqual(9, docs.count())
+            self.assertEqual(11, docs.count())
             doc_ids = [d['_id'] for d in docs]
             self.assertTrue('6' in doc_ids)
             self.assertTrue('5' in doc_ids)
@@ -414,7 +416,7 @@ class FilterConditionTests(TestCase):
         with self.app.app_context():
             self._setup_elastic_args(query, 'not')
             docs = get_resource_service('archive').get(req=self.req, lookup=None)
-            self.assertEqual(9, docs.count())
+            self.assertEqual(11, docs.count())
             doc_ids = [d['_id'] for d in docs]
             self.assertTrue('2' not in doc_ids)
 
@@ -771,3 +773,55 @@ class FilterConditionTests(TestCase):
             doc_ids = [d['_id'] for d in docs]
             self.assertEqual(1, docs.count())
             self.assertTrue('4' in doc_ids)
+
+    def test_mongo_using_update_filter_with_eq_comp_true(self):
+        f = FilterCondition('update', 'eq', 'true')
+        query = f.get_mongo_query()
+        with self.app.app_context():
+            docs = get_resource_service('archive'). \
+                get_from_mongo(req=self.req, lookup=query)
+            self.assertEqual(1, docs.count())
+            doc_ids = [d['_id'] for d in docs]
+            self.assertTrue('12' in doc_ids)
+
+    def test_mongo_using_update_filter_with_eq_comp_true(self):
+        f = FilterCondition('update', 'eq', 'false')
+        query = f.get_mongo_query()
+        with self.app.app_context():
+            docs = get_resource_service('archive'). \
+                get_from_mongo(req=self.req, lookup=query)
+            self.assertEqual(11, docs.count())
+            doc_ids = [d['_id'] for d in docs]
+            self.assertTrue('12' not in doc_ids)
+
+    def test_elastic_using_update_filter_eq_true(self):
+        f = FilterCondition('update', 'eq', '1')
+        query = f.get_elastic_query()
+        with self.app.app_context():
+            self._setup_elastic_args(query)
+            docs = get_resource_service('archive').get(req=self.req, lookup=None)
+            doc_ids = [d['_id'] for d in docs]
+            self.assertEqual(1, docs.count())
+            self.assertTrue('12' in doc_ids)
+
+    def test_elastic_using_update_filter_eq_false(self):
+        f = FilterCondition('update', 'eq', '0')
+        query = f.get_elastic_query()
+        with self.app.app_context():
+            self._setup_elastic_args(query)
+            docs = get_resource_service('archive').get(req=self.req, lookup=None)
+            doc_ids = [d['_id'] for d in docs]
+            self.assertEqual(11, docs.count())
+            self.assertTrue('12' not in doc_ids)
+
+    def test_does_match_update_filter_true(self):
+        f = FilterCondition('update', 'eq', 'true')
+        self.assertFalse(f.does_match(self.articles[0]))
+        self.assertFalse(f.does_match(self.articles[12]))
+        self.assertTrue(f.does_match(self.articles[11]))
+
+    def test_does_match_update_filter_false(self):
+        f = FilterCondition('update', 'eq', 'false')
+        self.assertTrue(f.does_match(self.articles[0]))
+        self.assertTrue(f.does_match(self.articles[12]))
+        self.assertFalse(f.does_match(self.articles[11]))

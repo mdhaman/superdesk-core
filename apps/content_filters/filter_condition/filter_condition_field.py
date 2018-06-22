@@ -34,6 +34,7 @@ class FilterConditionFieldsEnum(Enum):
     place = 16,
     ingest_provider = 17
     embargo = 18
+    update = 19
 
 
 class FilterConditionField:
@@ -70,6 +71,8 @@ class FilterConditionField:
             return FilterConditionIngestProviderField(field)
         elif FilterConditionFieldsEnum[field] == FilterConditionFieldsEnum.embargo:
             return FilterConditionEmbargoField(field)
+        elif FilterConditionFieldsEnum[field] == FilterConditionFieldsEnum.update:
+            return FilterConditionUpdateField(field)
         else:
             return FilterConditionField(field)
 
@@ -210,10 +213,10 @@ class FilterConditionEmbargoField(FilterConditionField):
                 return str(True)
         return str(False)
 
-    def get_elastic_query(self):
+    def get_elastic_query(self, value):
         return {'range': {'schedule_settings.utc_embargo': {'gt': utcnow().isoformat()}}}
 
-    def get_mongo_query(self):
+    def get_mongo_query(self, value):
         return {'schedule_settings.utc_embargo': {'$gt': utcnow()}}
 
 
@@ -241,3 +244,26 @@ class FilterConditionCustomTextField(FilterConditionField):
 
     def get_value(self, article):
         return article['extra'].get(self.field.name, '')
+
+
+class FilterConditionUpdateField(FilterConditionField):
+    def __init__(self, field):
+        self.field = FilterConditionFieldsEnum.update
+        self.entity_name = 'rewrite_of'
+        self.field_type = bool
+
+    def is_in_article(self, article):
+        return article.get('rewrite_of')
+
+    def get_value(self, article):
+        return str(True) if article.get('rewrite_of') else str(False)
+
+    def get_elastic_query(self, value):
+        if value:
+            return {'constant_score': {'filter': {'exists': {'field': 'rewrite_of'}}}}
+        return {'constant_score': {'filter': {'missing': {'field': 'rewrite_of'}}}}
+
+    def get_mongo_query(self, value):
+        if value:
+            return {'rewrite_of': {'$exists': True, '$not': {'$type': 10}}}
+        return {'rewrite_of': {'$exists': False}}

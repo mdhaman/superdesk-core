@@ -30,7 +30,8 @@ default_allowed_filters = ['anpa_category',
                            'sms',
                            'place',
                            'ingest_provider',
-                           'embargo']
+                           'embargo',
+                           'update']
 
 
 class FilterConditionResource(Resource):

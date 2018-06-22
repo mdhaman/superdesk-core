@@ -30,7 +30,7 @@ class FilterCondition:
 
     def get_mongo_query(self):
         try:
-            return self.field.get_mongo_query()
+            return self.field.get_mongo_query(self.value.get_value(self.field, self.operator))
         except AttributeError:
             field = self.field.get_entity_name()
             operator = self.operator.get_mongo_operator()
@@ -39,7 +39,7 @@ class FilterCondition:
 
     def get_elastic_query(self):
         try:
-            return self.field.get_elastic_query()
+            return self.field.get_elastic_query(self.value.get_value(self.field, self.operator))
         except AttributeError:
             operator = self.operator.get_elastic_operator()
             value, field = self.value.get_elastic_value(self.field, self.operator)
