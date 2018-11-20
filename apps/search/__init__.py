@@ -14,7 +14,7 @@ from copy import deepcopy
 
 import superdesk
 
-from superdesk import get_resource_service
+from superdesk import get_resource_service, es_utils
 from superdesk.metadata.item import CONTENT_STATE, ITEM_STATE
 from superdesk.metadata.utils import aggregations as common_aggregations, item_url, get_elastic_highlight_query
 from apps.archive.archive import SOURCE as ARCHIVE
@@ -202,7 +202,13 @@ class SearchService(superdesk.Service):
         if fields:
             params['_source'] = fields
 
-        hits = self.elastic.es.search(body=query, index=self._get_index(), doc_type=types, params=params)
+        hits = self.elastic.es.search(
+            body=query,
+            index=es_utils.get_index(types),
+            doc_type=types,
+            params=params
+        )
+
         docs = self._get_docs(hits)
 
         for resource in types:
@@ -264,3 +270,6 @@ class SearchResource(superdesk.Resource):
 def init_app(app):
     search_service = SearchService(ARCHIVE, backend=superdesk.get_backend())
     SearchResource('search', app=app, service=search_service)
+
+    # Set the start of week config for use in both server and client
+    app.client_config['start_of_week'] = app.config.get('START_OF_WEEK') or 0
