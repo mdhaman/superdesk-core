@@ -182,6 +182,7 @@ class BasePublishService(BaseService):
                 message=_("Key is missing on article to be published: {exception}").format(exception=str(e))
             )
         except Exception as e:
+            logger.exception(e)
             raise SuperdeskApiError.internalError(
                 message=_("Failed to publish the item: {id}").format(id=str(id)), exception=e)
 
